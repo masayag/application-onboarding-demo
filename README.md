@@ -1,53 +1,48 @@
-# orchestrator-workflows
+# Application onboarding
+This project demonstrate how a workflow can interact with an external service, jira, and send notifications to backstage
 
-This project uses Quarkus, the Supersonic Subatomic Java Framework.
+## Prerequisites
+1. Have a running JIRA instance (ie: free cloud instance)
+2. Have orchestrator installed
 
-If you want to learn more about Quarkus, please visit its website: https://quarkus.io/ .
 
-## Running the application in dev mode
+## Usage
+* Review the [application.properties](src/main/resources/application.properties) file and set the values accordingly.
+* Create a webhook in your JIRA for ISSUE events that point to <BACKSTAGE_URL>/api/orchestrator/webhook/jira. 
+    * Please note that this endpoint has been created for demo purposes so it is not generic enough to support multiple use cases. This step can be skipped if you are willing to send the cloud event yourself.
+* Be sure to include the Notification plugin in your Backstage instance.
+* Be sure to include the Orchestrator plugins on at least the versions: 
+    * <TBD> for @janus-idp/backstage-plugin-orchestrator
+    * <TBD> for @janus-idp/backstage-plugin-orchestrator-backend-dynamic
 
-You can run your application in dev mode that enables live coding using:
-```shell script
-./mvnw compile quarkus:dev
+## Generate image and manifest
+To generate the image, run:
+```bash
+mvn clean package
+docker build -f src/main/docker/Dockerfile.jvm -t quay.io/gfarache/application-onboarding:test . 
+```
+To generate the manifest, run:
+```bash
+cd src/main/resources
+curl -L https://github.com/rgolangh/kie-tools/releases/download/0.0.2/kn-workflow-linux-amd64 -o kn-workflow && chmod +x kn-workflow
+./kn-workflow gen-manifest --namespace ""
 ```
 
-> **_NOTE:_**  Quarkus now ships with a Dev UI, which is available in dev mode only at http://localhost:8080/q/dev/.
-
-## Packaging and running the application
-
-The application can be packaged using:
-```shell script
-./mvnw package
+Then make sure the manifests are prod-ready:
+```bash
+yq -i 'del(.metadata.annotations."sonataflow.org/profile")' manifests/01-sonataflow*.yaml
 ```
-It produces the `quarkus-run.jar` file in the `target/quarkus-app/` directory.
-Be aware that it’s not an _über-jar_ as the dependencies are copied into the `target/quarkus-app/lib/` directory.
-
-The application is now runnable using `java -jar target/quarkus-app/quarkus-run.jar`.
-
-If you want to build an _über-jar_, execute the following command:
-```shell script
-./mvnw package -Dquarkus.package.type=uber-jar
+And set the manifest's image to the generated image:
+```bash
+yq -i '.spec.podTemplate.container.image="<your registry>/<your org>/<your image>:<tag>"' manifests/01-sonataflow*.yaml
 ```
 
-The application, packaged as an _über-jar_, is now runnable using `java -jar target/*-runner.jar`.
+## Deploy
 
-## Creating a native executable
-
-You can create a native executable using:
-```shell script
-./mvnw package -Pnative
+Now you can simply deploy all the files in the `manifests` folder:
+```bash
+$ kubectl apply -f manifests -n <your NS>
+configmap/01-application-onboarding-resources created
+sonataflow.sonataflow.org/application-onboarding created
+configmap/application-onboarding-props created
 ```
-
-Or, if you don't have GraalVM installed, you can run the native executable build in a container using:
-```shell script
-./mvnw package -Pnative -Dquarkus.native.container-build=true
-```
-
-You can then execute your native executable with: `./target/orchestrator-workflows-0.0.0-SNAPSHOT-runner`
-
-If you want to learn more about building native executables, please consult https://quarkus.io/guides/maven-tooling.
-
-## Related Guides
-
-- Kogito - Serverless Workflow ([guide](https://quarkus.io/version/2.13/guides/kogito)): Add Kogito Serverless Workflows (SW) capabilities - Includes the Process engine capability
-- SmallRye OpenAPI ([guide](https://quarkus.io/guides/openapi-swaggerui)): Document your REST APIs with OpenAPI - comes with Swagger UI

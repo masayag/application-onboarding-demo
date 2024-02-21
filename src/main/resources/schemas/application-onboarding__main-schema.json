@@ -5,7 +5,7 @@
   "type": "object",
   "properties": {
     "jiraInfo": {
-      "$ref": "application-onboarding__ref-schema__JIRA_Info.json",
+      "$ref": "application-onboarding__JIRA_Info.json",
       "type": "object"
     }
   },
