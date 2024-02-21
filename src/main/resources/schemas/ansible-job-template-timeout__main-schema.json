@@ -1,0 +1,21 @@
+{
+  "$id": "classpath:/schemas/ansible-job-template-timeout__main-schema.json",
+  "title": "Data input schema",
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "type": "object",
+  "properties": {
+    "repositoryInfo": {
+      "$ref": "ansible-job-template-timeout__ref-schema__GitHub_Repository_Info.json",
+      "type": "object"
+    },
+    "ansibleJobDefinition": {
+      "$ref": "ansible-job-template-timeout__ref-schema__Ansible_Job_Definition.json",
+      "type": "object"
+    },
+    "jiraInfo": {
+      "$ref": "ansible-job-template-timeout__ref-schema__JIRA_Info.json",
+      "type": "object"
+    }
+  },
+  "required": ["repositoryInfo", "ansibleJobDefinition", "jiraInfo"]
+}

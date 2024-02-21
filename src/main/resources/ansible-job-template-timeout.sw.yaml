@@ -1,0 +1,303 @@
+id: ansible-job-template-timeout
+version: '1.0'
+specVersion: '0.8'
+name: "DEMO - Ansible Job Template and Timeout"
+description: Define an Ansible Job Template within Ansible Automation Platform
+dataInputSchema: schemas/ansible-job-template-timeout__main-schema.json
+functions:
+  - name: runActionFetchTemplate
+    operation: specs/actions-openapi.json#fetch:template
+  - name: runActionPublishGithubPullRequest
+    operation: specs/actions-openapi.json#publish:github:pull-request
+  - name: runActionCatalogRegister
+    operation: specs/actions-openapi.json#catalog:register
+  - name: fs:delete
+    operation: specs/actions-openapi.json#fs:delete
+  - name: jiraCreateIssue
+    operation: specs/jira-openapi.json#createIssue
+  - name: jiraCloseIssue
+    operation: specs/jira-openapi.json#transitionIssue
+  - name: jiraGetIssueTransitions
+    operation: specs/jira-openapi.json#getIssueTransitions
+  - name: createNotification
+    operation: specs/notifications-openapi.yaml#createNotification
+  - name: print
+    type: custom
+    operation: sysout
+events:
+  - name: callbackEvent
+    type: jira_webhook_callback
+    source: jira.callback
+errors:
+  - name: Error
+    code: java.lang.RuntimeException
+start: Generate Code and Catalog resources
+states:
+  - name: Generate Code and Catalog resources
+    type: parallel
+    branches:
+      - name: Generate the Ansible Job component
+        actions:
+          - name: Fetch template for Ansible Job component
+            functionRef:
+              refName: runActionFetchTemplate
+              arguments:
+                id: $WORKFLOW.instanceId
+                url: >-
+                  https://github.com/redhat-developer/red-hat-developer-hub-software-templates/tree/main/templates/github/define-ansible-job/skeleton
+                targetPath: argo/ansibleJobTemplates/
+                values:
+                  component_id: ${.ansibleJobDefinition.name}
+                  name: ${.ansibleJobDefinition.name}
+                  namespace: ${.ansibleJobDefinition.namespace}
+                  inventory: ${.ansibleJobDefinition.inventory}
+                  credential: ${.ansibleJobDefinition.credential}
+                  project: ${.ansibleJobDefinition.project}
+                  playbook: ${.ansibleJobDefinition.playbook}
+                  connection_secret: ${.ansibleJobDefinition.connectionSecret}
+                  description: ${.ansibleJobDefinition.description}
+                  extra_vars: ${.ansibleJobDefinition.extraVars}
+                  ask_vars_on_launch: '${.ansibleJobDefinition.askVarsOnLaunch}'
+      - name: Generate the Catalog Info Component
+        actions:
+          - name: Fetch template for Catalog Info component
+            functionRef:
+              refName: runActionFetchTemplate
+              arguments:
+                id: $WORKFLOW.instanceId
+                url: >-
+                  https://github.com/redhat-developer/red-hat-developer-hub-software-templates/tree/main/skeletons/catalog-info
+                values:
+                  githubOrg: ${.repositoryInfo.githubOrg}
+                  repoName: ${.repositoryInfo.repoName}
+                  owner: ${.repositoryInfo.owner}
+                  applicationType: api
+                  description: ${.ansibleJobDefinition.description}
+    compensatedBy: Clear generated Code and Catalog resources
+    transition: Publish Pull Request to GitHub
+  - name: Publish Pull Request to GitHub
+    type: operation
+    metadata:
+      # Note: Custom icon is an experimental feature
+      icon: "/src/main/resources/icons/github.png"
+    actionMode: sequential
+    actions:
+      - name: Publish Github Pull Request
+        functionRef:
+          refName: runActionPublishGithubPullRequest
+          arguments:
+            id: $WORKFLOW.instanceId
+            title: .ansibleJobDefinition.name + "-job"
+            allowedHosts:
+              - '"github.com"'
+            description: '"Adding " + .ansibleJobDefinition.name + "-job"'
+            repoUrl: '"github.com?owner=" + .repositoryInfo.githubOrg + "&repo=" + .repositoryInfo.repoName'
+            branchName: .ansibleJobDefinition.name + "-job"
+        actionDataFilter:
+          toStateData: .actionPublishResult
+    transition: "Notify Backstage: Pull Request created"
+    # Assuming here the error is due to the repository not being created
+    onErrors:
+      - errorRef: Error
+        transition: "Notify Backstage: Error on publish"
+  - name: Register the Catalog Info Component
+    type: operation
+    metadata:
+      icon: "/src/main/resources/icons/backstage.png"
+    actions:
+      - name: Catalog Register Action
+        functionRef:
+          refName: runActionCatalogRegister
+          arguments:
+            id: $WORKFLOW.instanceId
+            repoContentsUrl: '"https://github.com/" + .repositoryInfo.githubOrg + "/" + .repositoryInfo.repoName + "/blob/" + .actionPublishResult.targetBranchName'
+            catalogInfoPath: '"/catalog-info.yaml"'
+            optional: true
+        actionDataFilter:
+          toStateData: .actionCatalogRegisterResult
+    end: true
+  - name: Clear generated Code and Catalog resources
+    type: operation
+    usedForCompensation: true
+    actions:
+      - name: Clear FS Action
+        functionRef:
+          refName: fs:delete
+          arguments:
+            files:
+              - ./
+    end: true
+  - name: "Notify Backstage: Error on workflow"
+    type: operation
+    metadata:
+      icon: "/src/main/resources/icons/notification.png"
+    actions:
+      - name: "Create notification: Error on workflow"
+        functionRef:
+          refName: createNotification
+          arguments:
+            title: "Couldn't proceed with the workflow execution"
+            message: '"The GitHub repository " + .repositoryInfo.githubOrg + "/" + .repositoryInfo.repoName + " was not created on time."'
+            origin: "SonataFlow"
+            topic: "Ansible Job Template workflow"
+            targetUsers:
+              - "default/guest"
+    end: true
+  - name: "Notify Backstage: Error on publish"
+    type: operation
+    metadata:
+      icon: "/src/main/resources/icons/notification.png"
+    actions:
+      - name: "Create notification: Error on publish"
+        functionRef:
+          refName: createNotification
+          arguments:
+            title: "Couldn't publish Pull Request to GitHub"
+            message: '"The GitHub repository " + .repositoryInfo.githubOrg + "/" + .repositoryInfo.repoName + " does not exist. A JIRA ticket will be created to address this issue."'
+            origin: "SonataFlow"
+            topic: "Ansible Job Template workflow"
+            targetUsers:
+              - "default/guest"
+    transition: Open issue on JIRA
+  - name: "Notify Backstage: JIRA ticket closed"
+    type: operation
+    metadata:
+      icon: "/src/main/resources/icons/notification.png"
+    usedForCompensation: true
+    actions:
+      - name: "Create notification: JIRA ticket closed"
+        functionRef:
+          refName: createNotification
+          arguments:
+            title: "JIRA ticket closed due to time out"
+            message: "JIRA ticket closed due to time out on Backstage workflow"
+            origin: "SonataFlow"
+            topic: "Ansible Job Template workflow"
+            targetUsers:
+              - "default/guest"
+            actions:
+              - title: "View on JIRA"
+                # There are more dynamic ways to get the JIRA URL, but for simplicity, we are using a hardcoded URL
+                url: '"http://localhost:8080/projects/" + .jiraInfo.projectKey + "/issues/" + .jiraCreateIssueResult.key'
+    end: true
+  - name: "Notify Backstage: Pull Request created"
+    type: operation
+    metadata:
+      icon: "/src/main/resources/icons/notification.png"
+    actions:
+      - name: "Create notification: Pull Request created"
+        functionRef:
+          refName: createNotification
+          arguments:
+            title: "Pull request successfully created"
+            message: "Pull request successfully created"
+            origin: "SonataFlow"
+            topic: "Ansible Job Template workflow"
+            targetUsers:
+              - "default/guest"
+            actions:
+              - title: "View on GitHub"
+                url: .actionPublishResult.remoteUrl
+    transition: Register the Catalog Info Component
+  - name: Open issue on JIRA
+    type: operation
+    actions:
+      - name: callbackAction
+        functionRef:
+          refName: jiraCreateIssue
+          arguments:
+            fields:
+              assignee:
+                name: .jiraInfo.assignee
+              description: '"Please create a new Github Repository: " + .repositoryInfo.githubOrg + "/" + .repositoryInfo.repoName + "\n Go to https://github.com/new"'
+              issuetype:
+                name: Task
+              labels:
+                - backstage-workflow
+                - '"workflowId=" + $WORKFLOW.instanceId'
+              project:
+                key: .jiraInfo.projectKey
+              reporter:
+                name: .jiraInfo.reporter
+              priority:
+                name: High
+              summary: New Repository for Ansible project on Backstage
+        actionDataFilter:
+          toStateData: .jiraCreateIssueResult
+    transition: "Notify Backstage: JIRA ticket created"
+  - name: "Notify Backstage: JIRA ticket created"
+    type: operation
+    metadata:
+      icon: "/src/main/resources/icons/notification.png"
+    actions:
+      - name: "Create notification: JIRA ticket created"
+        functionRef:
+          refName: createNotification
+          arguments:
+            title: "JIRA ticket created"
+            message: "JIRA ticket created"
+            origin: "SonataFlow"
+            topic: "Ansible Job Template workflow"
+            targetUsers:
+              - "default/guest"
+            actions:
+              - title: "View on JIRA"
+                # There are more dynamic ways to get the JIRA URL, but for simplicity, we are using a hardcoded URL
+                url: '"http://localhost:8080/projects/" + .jiraInfo.projectKey + "/issues/" + .jiraCreateIssueResult.key'
+    transition: Wait for event from JIRA
+  - name: Wait for event from JIRA
+    type: callback
+    action:
+      name: Print waiting for event
+      functionRef:
+        refName: print
+        arguments:
+          message: Waiting for event
+    eventRef: callbackEvent
+    eventDataFilter:
+      toStateData: .jiraResolveIssueResult
+    timeouts:
+      eventTimeout: .jiraInfo.timeout
+    compensatedBy: Close issue on JIRA due to Timeout
+    transition: Check repository created
+  - name: Check repository created
+    type: switch
+    dataConditions:
+      - condition: .jiraResolveIssueResult != null
+        transition: Publish Pull Request to GitHub
+        name: Created
+      - condition: .jiraResolveIssueResult == null
+        transition: "Notify Backstage: Error on workflow"
+        name: Not created
+    defaultCondition:
+      transition:
+        compensate: true
+        nextState: "Notify Backstage: Error on workflow"
+  - name: Close issue on JIRA due to Timeout
+    type: operation
+    metadata:
+      icon: "/src/main/resources/icons/jira.png"
+    actionMode: sequential
+    actions:
+      - name: get transition id
+        actionDataFilter:
+          toStateData: .jiraGetTransitionResult
+        functionRef:
+          refName: jiraGetIssueTransitions
+          arguments:
+            issueIdOrKey: .jiraCreateIssueResult.id
+      - name: Close issue on JIRA due to Timeout
+        actionDataFilter:
+          toStateData: .jiraCloseIssueResult
+        functionRef:
+          refName: jiraCloseIssue
+          arguments:
+            issueIdOrKey: .jiraCreateIssueResult.id
+            transition:
+              id: .jiraGetTransitionResult.transitions[] | select(.name | contains("Close")) | .id
+            update:
+              comment:
+                - add:
+                    body: Issue closed due to time out on Backstage workflow
+    usedForCompensation: true
+    transition: "Notify Backstage: JIRA ticket closed"
