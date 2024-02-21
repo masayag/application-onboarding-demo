@@ -7,23 +7,17 @@
     "projectKey": {
       "title": "Project Key",
       "description": "JIRA project key",
-      "type": "string",
-      "enum": ["OR"],
-      "default": "OR"
+      "type": "string"
     },
     "reporter": {
       "title": "Reporter",
       "description": "JIRA user name",
-      "type": "string",
-      "enum": ["ghcaponetto"],
-      "default": "ghcaponetto"
+      "type": "string"
     },
     "assignee": {
       "title": "Assignee",
       "description": "JIRA user name",
-      "type": "string",
-      "enum": ["ghcaponetto"],
-      "default": "ghcaponetto"
+      "type": "string"
     },
     "timeout": {
       "title": "Timeout",
