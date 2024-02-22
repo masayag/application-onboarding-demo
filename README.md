@@ -8,12 +8,13 @@ This project demonstrate how a workflow can interact with an external service, j
 
 ## Usage
 * Review the [application.properties](src/main/resources/application.properties) file and set the values accordingly.
-* Create a [webhook](https://redhat-gfarache.atlassian.net/plugins/servlet/webhooks) in your JIRA for ISSUE events that point to <BACKSTAGE_URL>/api/orchestrator/webhook/jira. 
+* Create a webhook( see https://<jira url>/plugins/servlet/webhooks) in your JIRA for ISSUE events that point to <BACKSTAGE_URL>/api/orchestrator/webhook/jira. 
     * Please note that this endpoint has been created for demo purposes so it is not generic enough to support multiple use cases. This step can be skipped if you are willing to send the cloud event yourself.
 * Be sure to include the Notification plugin in your Backstage instance.
 * Be sure to include the Orchestrator plugins on at least the versions: 
     * `1.5.2` for `@janus-idp/backstage-plugin-orchestrator`
     * `1.4.1` for `@janus-idp/backstage-plugin-orchestrator-backend-dynamic`
+* Be sure the workflow schema is set to classic in Jira: https://<jira url>/plugins/servlet/project-config/<project key>/workflows
 
 
 ## Generate image and manifest
