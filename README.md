@@ -8,12 +8,13 @@ This project demonstrate how a workflow can interact with an external service, j
 
 ## Usage
 * Review the [application.properties](src/main/resources/application.properties) file and set the values accordingly.
-* Create a webhook in your JIRA for ISSUE events that point to <BACKSTAGE_URL>/api/orchestrator/webhook/jira. 
+* Create a [webhook](https://redhat-gfarache.atlassian.net/plugins/servlet/webhooks) in your JIRA for ISSUE events that point to <BACKSTAGE_URL>/api/orchestrator/webhook/jira. 
     * Please note that this endpoint has been created for demo purposes so it is not generic enough to support multiple use cases. This step can be skipped if you are willing to send the cloud event yourself.
 * Be sure to include the Notification plugin in your Backstage instance.
 * Be sure to include the Orchestrator plugins on at least the versions: 
-    * <TBD> for @janus-idp/backstage-plugin-orchestrator
-    * <TBD> for @janus-idp/backstage-plugin-orchestrator-backend-dynamic
+    * `1.5.2` for `@janus-idp/backstage-plugin-orchestrator`
+    * `1.4.1` for `@janus-idp/backstage-plugin-orchestrator-backend-dynamic`
+
 
 ## Generate image and manifest
 To generate the image, run:
@@ -30,11 +31,11 @@ curl -L https://github.com/rgolangh/kie-tools/releases/download/0.0.2/kn-workflo
 
 Then make sure the manifests are prod-ready:
 ```bash
-yq -i 'del(.metadata.annotations."sonataflow.org/profile")' manifests/01-sonataflow*.yaml
+yq -iy 'del(.metadata.annotations."sonataflow.org/profile")' manifests/01-sonataflow*.yaml
 ```
 And set the manifest's image to the generated image:
 ```bash
-yq -i '.spec.podTemplate.container.image="<your registry>/<your org>/<your image>:<tag>"' manifests/01-sonataflow*.yaml
+yq -iy '.spec.podTemplate.container.image="quay.io/gfarache/application-onboarding:test"' manifests/01-sonataflow*.yaml
 ```
 
 ## Deploy

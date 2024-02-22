@@ -81,7 +81,7 @@ states:
             actions:
               - title: "View on JIRA"
                 # There are more dynamic ways to get the JIRA URL, but for simplicity, we are using a hardcoded URL
-                url: '$SECRET.jira_url + "/" + .jiraInfo.projectKey + "/issues/" + .jiraCreateIssueResult.key'
+                url: '$SECRET.jira_url + "/jira/servicedesk/projects/" + .jiraInfo.projectKey + "/issues/" + .jiraCreateIssueResult.key'
     transition: Wait for event from JIRA
   - name: Wait for event from JIRA
     type: callback
@@ -120,7 +120,7 @@ states:
           functionRef:
             refName: print
             arguments:
-              message: 'Jira issue closed: $SECRET.jira_url + "/" + .jiraInfo.projectKey + "/issues/" + .jiraCreateIssueResult.key'
+              message: 'Jira issue closed: $SECRET.jira_url + "/jira/servicedesk/projects/" + .jiraInfo.projectKey + "/issues/" + .jiraCreateIssueResult.key'
     - name: "Create notification: JIRA ticket closed"
       actions:
         - name: "Create notification: JIRA ticket closed"
@@ -136,7 +136,7 @@ states:
               actions:
                 - title: "View on JIRA"
                   # There are more dynamic ways to get the JIRA URL, but for simplicity, we are using a hardcoded URL
-                  url: '$SECRET.jira_url + "/" + .jiraInfo.projectKey + "/issues/" + .jiraCreateIssueResult.key'
+                  url: '$SECRET.jira_url + "/jira/servicedesk/projects/" + .jiraInfo.projectKey + "/issues/" + .jiraCreateIssueResult.key'
       
     end: true
   - name: Close issue on JIRA due to Timeout
@@ -158,7 +158,7 @@ states:
           arguments:
             issueIdOrKey: .jiraCreateIssueResult.id
             transition:
-              id: .jiraGetTransitionResult.transitions[] | select(.name | contains("Close")) | .id
+              id: .jiraGetTransitionResult.transitions[] | select(.name | contains("done")) | .id
             update:
               comment:
                 - add:
@@ -182,5 +182,5 @@ states:
             actions:
               - title: "View on JIRA"
                 # There are more dynamic ways to get the JIRA URL, but for simplicity, we are using a hardcoded URL
-                url: '$SECRET.jira_url + "/" + .jiraInfo.projectKey + "/issues/" + .jiraCreateIssueResult.key'
+                url: '$SECRET.jira_url + "/jira/servicedesk/projects/" + .jiraInfo.projectKey + "/issues/" + .jiraCreateIssueResult.key'
     end: true

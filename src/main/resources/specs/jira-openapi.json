@@ -49,7 +49,7 @@
         "deprecated": false,
         "security": [
           {
-            "bearerAuth": []
+            "basicAuth": []
           }
         ]
       }
@@ -97,7 +97,7 @@
         "deprecated": false,
         "security": [
           {
-            "bearerAuth": []
+            "basicAuth": []
           }
         ]
       },
@@ -132,7 +132,7 @@
         "deprecated": false,
         "security": [
           {
-            "bearerAuth": []
+            "basicAuth": []
           }
         ]
       }
