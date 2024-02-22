@@ -19,14 +19,13 @@ This project demonstrate how a workflow can interact with an external service, j
 ## Generate image and manifest
 To generate the image, run:
 ```bash
-mvn clean package
-docker build -f src/main/docker/Dockerfile.jvm -t quay.io/gfarache/application-onboarding:test . 
+REGISTRY_REPO=<your org> WORKFLOW_ID=application-onboarding make prepare-workdir build-image push-image 
 ```
 To generate the manifest, run:
 ```bash
-cd src/main/resources
+cd application-onboarding
 curl -L https://github.com/rgolangh/kie-tools/releases/download/0.0.2/kn-workflow-linux-amd64 -o kn-workflow && chmod +x kn-workflow
-./kn-workflow gen-manifest --namespace ""
+./../kn-workflow gen-manifest --namespace ""
 ```
 
 Then make sure the manifests are prod-ready:
@@ -35,7 +34,7 @@ yq -iy 'del(.metadata.annotations."sonataflow.org/profile")' manifests/01-sonata
 ```
 And set the manifest's image to the generated image:
 ```bash
-yq -iy '.spec.podTemplate.container.image="quay.io/gfarache/application-onboarding:test"' manifests/01-sonataflow*.yaml
+yq -iy '.spec.podTemplate.container.image="quay.io/gfarache/serverless-workflow-application-onboarding:latest"' manifests/01-sonataflow*.yaml
 ```
 
 ## Deploy
