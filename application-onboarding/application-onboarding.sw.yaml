@@ -158,7 +158,7 @@ states:
           arguments:
             issueIdOrKey: .jiraCreateIssueResult.id
             transition:
-              id: .jiraGetTransitionResult.transitions[] | select(.name | contains("Closed")) | .id
+              id: .jiraGetTransitionResult.transitions[] | select(.name | contains("Close")) | .id
             update:
               comment:
                 - add:
