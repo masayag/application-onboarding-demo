@@ -18,23 +18,7 @@
       "title": "Assignee",
       "description": "JIRA user name",
       "type": "string"
-    },
-    "timeout": {
-      "title": "Timeout",
-      "description": "Time to wait for the JIRA ticket to be resolved",
-      "type": "string",
-      "default": "PT30S",
-      "oneOf": [
-        {
-          "const": "PT30S",
-          "title": "30 seconds"
-        },
-        {
-          "const": "PT8H",
-          "title": "8 hours"
-        }
-      ]
     }
   },
-  "required": ["assignee", "projectKey", "reporter", "timeout"]
+  "required": ["assignee", "projectKey", "reporter"]
 }
