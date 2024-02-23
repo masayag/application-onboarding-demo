@@ -95,7 +95,7 @@ states:
     eventDataFilter:
       toStateData: .jiraResolveIssueResult
     timeouts:
-      eventTimeout: .jiraInfo.timeout
+      eventTimeout: PT60S
     compensatedBy: Close issue on JIRA due to Timeout
     transition: Check repository created
   - name: Check repository created
